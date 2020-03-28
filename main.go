@@ -58,7 +58,7 @@ var mockUsers = []User{
 		Email:    "john@smith.name",
 		Password: "iAmJohnny",
 		// FIXME: provide location
-		Birthday:   time.Date(1980, 1, 1, 0, 0, 0, 0, nil),
+		Birthday:   time.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC),
 		Address:    "some city, some street 1",
 		Phone:      nil,
 		Technology: "php",
@@ -67,9 +67,9 @@ var mockUsers = []User{
 	{
 		Name: "Anne J. Marie", Surname: "von Flick",
 		Email:    "Anne-Marie@vonflick.de",
-		Password: "foo123!%",
+		Password: `foo123!"%`,
 		// FIXME: provide location
-		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, nil),
+		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, time.UTC),
 		Address:    "Anneville",
 		Phone:      newString("+48 123-456-789"),
 		Technology: "java",
@@ -81,9 +81,9 @@ var mockUsers = []User{
 		Email:    "bobby.tables@xkcd.com", // TODO: fun email
 		Password: "TODO: harder",          // TODO: fun password
 		// FIXME: provide location
-		Birthday:   time.Date(2007, 10, 7, 0, 0, 0, 0, nil), // TODO: fun date (Feb?)
-		Address:    "Wherever",                              // TODO: fun address (Unicode? Zalgo?)
-		Phone:      nil,                                     // TODO: fun phone
+		Birthday:   time.Date(2007, 10, 7, 0, 0, 0, 0, time.UTC), // TODO: fun date (Feb?)
+		Address:    "Wherever",                                   // TODO: fun address (Unicode? Zalgo?)
+		Phone:      nil,                                          // TODO: fun phone
 		Technology: "js",
 		Deleted:    nil,
 	},
@@ -92,24 +92,24 @@ var mockUsers = []User{
 		Email:    "bobby.tables@xkcd.com",
 		Password: "",
 		// FIXME: provide location
-		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, nil),
+		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, time.UTC),
 		Address:    "Dorothyville 1",
 		Phone:      newString("+48 1"),
 		Technology: "go",
 		// FIXME: provide location?
-		Deleted: newTime(time.Date(2020, 3, 28, 12, 21, 1, 0, nil)),
+		Deleted: newTime(time.Date(2020, 3, 28, 12, 21, 1, 0, time.UTC)),
 	},
 	{
 		Name: "Dorothy", Surname: "Deleted de 2",
 		Email:    "bobby.tables@xkcd.com",
 		Password: "",
 		// FIXME: provide location
-		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, nil),
+		Birthday:   time.Date(2000, 12, 12, 0, 0, 0, 0, time.UTC),
 		Address:    "Dorothyville 2",
 		Phone:      newString("+48 2"),
 		Technology: "go",
 		// FIXME: provide location?
-		Deleted: newTime(time.Date(2020, 3, 28, 12, 21, 2, 0, nil)),
+		Deleted: newTime(time.Date(2020, 3, 28, 12, 21, 2, 0, time.UTC)),
 	},
 }
 
