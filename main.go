@@ -19,7 +19,7 @@ var (
 )
 
 func main() {
-	// TODO: tests
+	// TODO: write tests, run with `go test -race`
 	r := mux.NewRouter()
 	r.Methods("GET").Path("/v1/user").HandlerFunc(listUsers)
 	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
