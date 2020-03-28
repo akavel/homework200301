@@ -15,6 +15,7 @@ var (
 )
 
 func main() {
+	// TODO: tests
 	r := mux.NewRouter()
 	r.Methods("GET").Path("/v1/user").HandlerFunc(listUsers)
 	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
@@ -49,7 +50,25 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
-	panic("NIY")
+	id := mux.Vars(r)["id"]
+	// TODO: quick fail if id empty or invalid?
+	var found *User
+	for _, u := range mockUsers {
+		if u.Deleted == nil && u.Email == id {
+			found = &u
+			break
+		}
+	}
+	if found == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	err := json.NewEncoder(w).Encode(found)
+	if err != nil {
+		log.Printf("getUser[%q]: %s", id, err)
+		// TODO: if not too late, write 500 to w
+		return
+	}
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
