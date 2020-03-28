@@ -61,14 +61,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	mockLock.Lock()
 	defer mockLock.Unlock()
 
-	var found *User
-	for _, u := range mockUsers {
-		if u.Deleted == nil && u.Email == id {
-			found = &u
-			break
-		}
-	}
-	// TODO: exit mutex earlier
+	found := mockUsers.findActive(id)
+	// TODO: exit mutex early, serialization doesn't need to be in critical section
 
 	if found == nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -91,7 +85,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 }
 
 var mockLock sync.Mutex
-var mockUsers = []User{
+var mockUsers = Users{
 	{
 		Name: "John", Surname: "Smith",
 		Email:    "john@smith.name",
@@ -154,3 +148,14 @@ var mockUsers = []User{
 
 func newString(v string) *string     { return &v }
 func newTime(v time.Time) *time.Time { return &v }
+
+type Users []User
+
+func (us Users) findActive(id string) *User {
+	for _, u := range us {
+		if u.Deleted == nil && u.Email == id {
+			return &u
+		}
+	}
+	return nil
+}
