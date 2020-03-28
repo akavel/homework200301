@@ -51,7 +51,7 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewEncoder(w).Encode(mockUsers)
 	if err != nil {
-		log.Printf("listUsers: %s", err)
+		log.Print("listUsers: ", err)
 		// TODO: if not too late, write 500 to w
 		return
 	}
@@ -91,7 +91,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		// TODO: return JSON-formatted errors?
 		w.WriteHeader(http.StatusBadRequest)
 		// TODO: maybe log Fprintf error, here and everywhere else
-		fmt.Fprintf(w, "error: %s", err)
+		fmt.Fprint(w, "error: ", err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	conflict := mockUsers.findActive(u.Email)
 	if conflict != nil {
 		w.WriteHeader(http.StatusConflict)
-		fmt.Fprintf(w, "error: user with the same .email already exists")
+		fmt.Fprint(w, "error: user with the same .email already exists")
 		return
 	}
 
