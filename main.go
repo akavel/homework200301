@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -41,6 +42,10 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: query: technology=*|php|go|java|js,active=true|false|*
 	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: Content-Type, Accepted
+
+	mockLock.Lock()
+	defer mockLock.Unlock()
+
 	err := json.NewEncoder(w).Encode(mockUsers)
 	if err != nil {
 		log.Printf("listUsers: %s", err)
@@ -52,6 +57,10 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 func getUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
+
+	mockLock.Lock()
+	defer mockLock.Unlock()
+
 	var found *User
 	for _, u := range mockUsers {
 		if u.Deleted == nil && u.Email == id {
@@ -59,6 +68,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// TODO: exit mutex earlier
+
 	if found == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -79,6 +90,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	panic("NIY")
 }
 
+var mockLock sync.Mutex
 var mockUsers = []User{
 	{
 		Name: "John", Surname: "Smith",
