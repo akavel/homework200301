@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -76,8 +79,61 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var validTechnology = map[string]bool{
+	"go": true, "java": true, "js": true, "php": true,
+}
+
 func createUser(w http.ResponseWriter, r *http.Request) {
-	panic("NIY")
+
+	var u User
+	err := json.NewDecoder(r.Body).Decode(&u)
+	if err != nil {
+		// TODO: return JSON-formatted errors?
+		w.WriteHeader(http.StatusBadRequest)
+		// TODO: maybe log Fprintf error, here and everywhere else
+		fmt.Fprintf(w, "error: %s", err)
+		return
+	}
+
+	// Validate fields
+	// TODO: return all validation errors, not just the first one
+	switch {
+	case !strings.Contains(u.Email, "@"):
+		// TODO: also verify there's something before '@' and after '@'
+		// TODO: consider more advanced validation, though this is tricky; if applicable, consider sending confirmation email
+		err = errors.New(".email is not a valid email address")
+	case !validTechnology[u.Technology]:
+		err = errors.New(".technology must be one of: go java js php")
+	case u.Deleted != nil:
+		err = errors.New(".deleted must be empty")
+	}
+	// TODO: .birthday probably shouldn't be in future
+	// TODO: validate .phone if provided (there's some pkg for this IIRC)
+	// TODO: arguably, non-optional fields should also be non-empty, though
+	// question is how far we want to go with validation, e.g. is "x" a
+	// valid address?
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
+
+	mockLock.Lock()
+	defer mockLock.Unlock()
+
+	// Make sure user with the same email doesn't already exist
+	conflict := mockUsers.findActive(u.Email)
+	if conflict != nil {
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprintf(w, "error: user with the same .email already exists")
+		return
+	}
+
+	mockUsers = append(mockUsers, u)
+
+	// FIXME: base URL below should be customizable via flag
+	w.Header().Add("Location", "/v1/user/"+u.Email)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func modifyUser(w http.ResponseWriter, r *http.Request) {
