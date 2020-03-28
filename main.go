@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
@@ -23,21 +24,28 @@ func main() {
 }
 
 type User struct {
-	Name    string
-	Surname string
-	Email   string
-	// FIXME: only store a hash of the password
-	Password   string
-	Birthday   time.Time
-	Address    string
-	Phone      *string
-	Technology string
-	Deleted    *time.Time
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+	// FIXME: [LATER] only store a hash of the password
+	Password   string     `json:"password"`
+	Birthday   time.Time  `json:"birthday"`
+	Address    string     `json:"address"`
+	Phone      *string    `json:"phone",omitempty`
+	Technology string     `json:"technology"`
+	Deleted    *time.Time `json:"deleted,omitempty"`
 }
 
 func listUsers(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("OK"))
-	// panic("NIY")
+	// TODO: query: technology=*|php|go|java|js,active=true|false|*
+	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
+	// TODO: Content-Type, Accepted
+	err := json.NewEncoder(w).Encode(mockUsers)
+	if err != nil {
+		log.Printf("listUsers: %s", err)
+		// TODO: if not too late, write 500 to w
+		return
+	}
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
