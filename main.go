@@ -129,7 +129,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mockUsers = append(mockUsers, u)
+	mockUsers = append(mockUsers, &u)
 
 	// FIXME: base URL below should be customizable via flag
 	w.Header().Add("Location", "/v1/user/"+u.Email)
@@ -205,12 +205,12 @@ var mockUsers = Users{
 func newString(v string) *string     { return &v }
 func newTime(v time.Time) *time.Time { return &v }
 
-type Users []User
+type Users []*User
 
 func (us Users) findActive(id string) *User {
 	for _, u := range us {
 		if u.Deleted == nil && u.Email == id {
-			return &u
+			return u
 		}
 	}
 	return nil
