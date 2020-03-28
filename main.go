@@ -25,6 +25,7 @@ func main() {
 	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
 	r.Methods("POST").Path("/v1/user").HandlerFunc(createUser)
 	r.Methods("PUT").Path("/v1/user/{id}").HandlerFunc(modifyUser)
+	r.Methods("DELETE").Path("/v1/user/{id}").HandlerFunc(deleteUser)
 	log.Fatal(http.ListenAndServe(*addr, r))
 }
 
@@ -138,6 +139,25 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 func modifyUser(w http.ResponseWriter, r *http.Request) {
 	panic("NIY")
+}
+
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
+	id := mux.Vars(r)["id"]
+	// TODO: quick fail if id empty or invalid?
+
+	mockLock.Lock()
+	defer mockLock.Unlock()
+
+	found := mockUsers.findActive(id)
+	if found == nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "error: user not found")
+		return
+	}
+
+	found.Deleted = newTime(time.Now())
+	w.WriteHeader(http.StatusNoContent)
 }
 
 var mockLock sync.Mutex
