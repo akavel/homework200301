@@ -24,15 +24,34 @@ func ConnectPostgres(options *pg.Options) (*PostgresDB, error) {
 	// TODO: enable SQL logger only if requested via flag
 	db.pg.AddQueryHook(pgLogger{})
 
-	// FIXME: how to add indexes via pg package?
+	// FIXME: create all below schema-related stuff as part of one DDL transaction
+	// TODO: add indexes for speeding up searches
+
+	// Create main schema
+	// TODO: [LATER] switch to proper migrations, e.g. https://github.com/go-pg/migrations or https://github.com/robinjoseph08/go-pg-migrations
 	err := db.pg.CreateTable((*User)(nil), &orm.CreateTableOptions{
-		// TODO: [LATER] switch to proper migrations, e.g. https://github.com/go-pg/migrations or https://github.com/robinjoseph08/go-pg-migrations
 		IfNotExists: true,
 	})
 	if err != nil {
 		db.pg.Close()
 		return nil, fmt.Errorf("creating schemas: %w", err)
 	}
+
+	// Add unique indexes
+	// See:
+	// - https://github.com/go-pg/pg/wiki/Writing-Queries#executing-custom-queries
+	// - https://stackoverflow.com/q/24674281 - ...IF NOT EXISTS...
+	// - https://stackoverflow.com/a/8289253  - ...WHERE ? IS NULL
+	_, err = db.pg.Model((*User)(nil)).Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS users_only_one_active
+			ON ?TableName (email)
+			WHERE deleted IS NULL;
+	`)
+	if err != nil {
+		db.pg.Close()
+		return nil, fmt.Errorf("creating indexes: %w", err)
+	}
+
 	return db, nil
 }
 

@@ -62,14 +62,14 @@ type User struct {
 
 	Name    string `json:"name" pg:",notnull"`
 	Surname string `json:"surname" pg:",notnull"`
-	Email   string `json:"email" pg:",unique:active_email"`
+	Email   string `json:"email" pg:",notnull"`
 	// FIXME: [LATER] only store a hash of the password
 	Password   string     `json:"password" pg:",notnull"`
 	Birthday   time.Time  `json:"birthday" pg:",notnull"`
 	Address    string     `json:"address" pg:",notnull"`
 	Phone      *string    `json:"phone",omitempty`
 	Technology string     `json:"technology" pg:",notnull"`
-	Deleted    *time.Time `json:"deleted,omitempty" pg:",unique:active_email"`
+	Deleted    *time.Time `json:"deleted,omitempty"`
 }
 
 // TODO: [LATER] introduce Context to methods, to allow timeouts control
