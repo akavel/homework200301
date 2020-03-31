@@ -50,17 +50,28 @@ func (db *PostgresDB) ListUsers() ([]*User, error) {
 }
 
 func (db *PostgresDB) GetUser(email string) (*User, error) {
-	var u User
-	err := db.pg.Model(&u).
+	// TODO: [LATER] is there a smarter way to return 0..1 records with pg package?
+	var users []*User
+	err := db.pg.Model(&users).
 		Where(`email = ?`, email).
 		Where(`deleted IS NULL`).
 		Select()
-	// TODO: what happens if not found?
 	if err != nil {
-		log.Printf("GetUser: %T %#v", err, err)
+		log.Printf("GetUser: %#v", err)
 		return nil, fmt.Errorf("getting user: %w", err)
 	}
-	return &u, nil
+
+	switch len(users) {
+	case 0:
+		return nil, nil
+	case 1:
+		return users[0], nil
+	default:
+		// TODO: [LATER] emit an error ID to logs and to Errorf, for cross-referencing
+		// TODO: [LATER] consider printing a few of the returned users to logs for easier debugging (though GDPR)
+		log.Printf("CRIT: multiple rows returned in GetUser(email=%q): %d", email, len(users))
+		return nil, fmt.Errorf("Internal Server Error")
+	}
 }
 
 func (db *PostgresDB) CreateUser(u *User) error {
