@@ -42,6 +42,15 @@ type User struct {
 	Deleted    *time.Time `json:"deleted,omitempty"`
 }
 
+type Database interface {
+	ListUsers() ([]*User, error) // TODO: listing options (query)
+	GetUser(email string) (*User, error)
+	CreateUser(u *User) error
+	DeleteUser(email string) error
+
+	Close() error
+}
+
 func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: query: technology=*|php|go|java|js,active=true|false|*
 	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
