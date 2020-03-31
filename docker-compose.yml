@@ -1,5 +1,7 @@
 version: '3'
 
+# TODO: consider adding a script for filling the DB with mock testing data
+
 services:
   postgres:
     image: postgres:12.2  # TODO: [LATER] switch to -alpine

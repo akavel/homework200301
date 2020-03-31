@@ -95,6 +95,10 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "error: ", err)
 		return
 	}
+	// Let's print `[]` instead of `null` in the JSON response in case of empty results list
+	if users == nil {
+		users = []*User{}
+	}
 
 	err = json.NewEncoder(w).Encode(users)
 	if err != nil {
