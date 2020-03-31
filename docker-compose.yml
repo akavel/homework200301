@@ -2,7 +2,7 @@ version: '3'
 
 services:
   postgres:
-    image: postgres
+    image: postgres:12.2  # TODO: [LATER] switch to -alpine
     environment:
       POSTGRES_USER: homework
       POSTGRES_PASSWORD: DazBMyGQdKqKG
