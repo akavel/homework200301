@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -20,6 +21,9 @@ func ConnectPostgres(options *pg.Options) (*PostgresDB, error) {
 	db := &PostgresDB{
 		pg: pg.Connect(options),
 	}
+	// TODO: enable SQL logger only if requested via flag
+	db.pg.AddQueryHook(pgLogger{})
+
 	// FIXME: how to add indexes via pg package?
 	err := db.pg.CreateTable((*User)(nil), &orm.CreateTableOptions{
 		// TODO: [LATER] switch to proper migrations, e.g. https://github.com/go-pg/migrations or https://github.com/robinjoseph08/go-pg-migrations
@@ -93,4 +97,14 @@ func (db *PostgresDB) DeleteUser(email string) error {
 		log.Printf("CRIT: multiple rows affected in DeleteUser(email=%q): %d", email, rows)
 		return nil
 	}
+}
+
+type pgLogger struct{}
+
+func (pgLogger) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
+	return ctx, nil
+}
+func (pgLogger) AfterQuery(_ context.Context, q *pg.QueryEvent) error {
+	log.Println(q.FormattedQuery())
+	return nil
 }
