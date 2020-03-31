@@ -28,7 +28,8 @@ func main() {
 
 	// FIXME: pass Postgres options via env vars (esp. password) - probably as a standard connection string
 	// db = NewMockDB()
-	db, err := ConnectPostgres(&pg.Options{
+	var err error
+	db, err = ConnectPostgres(&pg.Options{
 		Addr:            "localhost:5432",
 		User:            "homework",
 		Password:        "DazBMyGQdKqKG",
