@@ -77,7 +77,7 @@ func (db *MockDB) findActive(email string) *User {
 	return nil
 }
 
-var MockUsers Database = &MockDB{
+var mock Database = &MockDB{
 	users: []*User{
 		{
 			Name: "John", Surname: "Smith",

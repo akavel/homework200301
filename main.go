@@ -55,10 +55,16 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: Content-Type, Accepted
 
-	mockLock.Lock()
-	defer mockLock.Unlock()
+	users, err := mock.ListUsers()
+	if err != nil {
+		// TODO: return JSON-formatted errors?
+		w.WriteHeader(http.StatusInternalServerError)
+		// TODO: [LATER] maybe log error if Fprintf failed, here and everywhere else
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
 
-	err := json.NewEncoder(w).Encode(mockUsers)
+	err = json.NewEncoder(w).Encode(users)
 	if err != nil {
 		log.Print("listUsers: ", err)
 		// TODO: if not too late, write 500 to w
@@ -70,17 +76,18 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	mockLock.Lock()
-	defer mockLock.Unlock()
-
-	found := mockUsers.findActive(id)
-	// TODO: exit mutex early, serialization doesn't need to be in critical section
+	found, err := mock.GetUser(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
 
 	if found == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	err := json.NewEncoder(w).Encode(found)
+	err = json.NewEncoder(w).Encode(found)
 	if err != nil {
 		log.Printf("getUser[%q]: %s", id, err)
 		// TODO: if not too late, write 500 to w
@@ -105,6 +112,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate fields
+	// TODO: move validation to separate func, e.g. method of User type
 	// TODO: return all validation errors, not just the first one
 	switch {
 	case !strings.Contains(u.Email, "@"):
@@ -127,18 +135,18 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mockLock.Lock()
-	defer mockLock.Unlock()
-
-	// Make sure user with the same email doesn't already exist
-	conflict := mockUsers.findActive(u.Email)
-	if conflict != nil {
-		w.WriteHeader(http.StatusConflict)
-		fmt.Fprint(w, "error: user with the same .email already exists")
+	err = mock.CreateUser(&u)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "error: ", err)
 		return
 	}
 
-	mockUsers = append(mockUsers, &u)
+	// if conflict != nil {
+	// 	w.WriteHeader(http.StatusConflict)
+	// 	fmt.Fprint(w, "error: user with the same .email already exists")
+	// 	return
+	// }
 
 	// FIXME: base URL below should be customizable via flag
 	w.Header().Add("Location", "/v1/user/"+u.Email)
@@ -154,16 +162,18 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	mockLock.Lock()
-	defer mockLock.Unlock()
-
-	found := mockUsers.findActive(id)
-	if found == nil {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, "error: user not found")
+	err := mock.DeleteUser(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "error: ", err)
 		return
 	}
 
-	found.Deleted = newTime(time.Now())
+	// if found == nil {
+	// 	w.WriteHeader(http.StatusNotFound)
+	// 	fmt.Fprint(w, "error: user not found")
+	// 	return
+	// }
+
 	w.WriteHeader(http.StatusNoContent)
 }
