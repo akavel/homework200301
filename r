@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function psql() {
-    PGPASSWORD=DazBMyGQdKqKG command psql -h localhost -U homework
+    docker exec -it homework200301_postgres_1 psql -U homework -d users_db
 }
 
 function du() {
