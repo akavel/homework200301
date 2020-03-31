@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-pg/pg/v9"
 	"github.com/gorilla/mux"
 )
 
@@ -25,7 +26,19 @@ var (
 func main() {
 	// TODO: write tests, run with `go test -race`
 
-	db = NewMockDB()
+	// FIXME: pass Postgres options via env vars (esp. password) - probably as a standard connection string
+	// db = NewMockDB()
+	db, err := ConnectPostgres(&pg.Options{
+		Addr:            "localhost:5432",
+		User:            "homework",
+		Password:        "DazBMyGQdKqKG",
+		Database:        "users_db",
+		ApplicationName: "users_go",
+		// TODO: [LATER] add timeouts etc.
+	})
+	if err != nil {
+		log.Fatalf("initializing Postgres DB: %s", err)
+	}
 	// TODO: [LATER] Close() will never happen now (needs HTTP server soft shutdown)
 	// TODO: [LATER] log any error from Close()
 	defer db.Close()
