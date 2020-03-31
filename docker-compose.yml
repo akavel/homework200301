@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: homework
+      POSTGRES_PASSWORD: DazBMyGQdKqKG
+      PGDATA: /data/postgres
+    volumes:
+      - users_data:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  users_data:
