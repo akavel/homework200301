@@ -5,7 +5,7 @@ services:
     image: postgres:12.2  # TODO: [LATER] switch to -alpine
     environment:
       POSTGRES_USER: homework
-      POSTGRES_PASSWORD: DazBMyGQdKqKG
+      POSTGRES_PASSWORD: DazBMyGQdKqKG  # FIXME: remember to chg passwd before deploying to PROD
       PGDATA: /data/postgres
     volumes:
       - users_data:/data/postgres
