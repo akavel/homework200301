@@ -17,8 +17,19 @@ var (
 	addr = flag.String("http", ":8080", "http address to listen on")
 )
 
+var (
+	// FIXME: don't use global var, create proper wrapper object instead
+	db Database
+)
+
 func main() {
 	// TODO: write tests, run with `go test -race`
+
+	db = NewMockDB()
+	// TODO: [LATER] Close() will never happen now (needs HTTP server soft shutdown)
+	// TODO: [LATER] log any error from Close()
+	defer db.Close()
+
 	r := mux.NewRouter()
 	r.Methods("GET").Path("/v1/user").HandlerFunc(listUsers)
 	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
@@ -62,7 +73,7 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: Content-Type, Accepted
 
-	users, err := mock.ListUsers()
+	users, err := db.ListUsers()
 	if err != nil {
 		// TODO: return JSON-formatted errors?
 		w.WriteHeader(http.StatusInternalServerError)
@@ -83,7 +94,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	found, err := mock.GetUser(id)
+	found, err := db.GetUser(id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "error: ", err)
@@ -142,7 +153,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = mock.CreateUser(&u)
+	err = db.CreateUser(&u)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "error: ", err)
@@ -169,7 +180,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	err := mock.DeleteUser(id)
+	err := db.DeleteUser(id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "error: ", err)
