@@ -12,5 +12,9 @@ function dd() {
     docker-compose down --remove-orphans
 }
 
+function del() {
+    docker volume rm homework200301_users_data
+}
+
 "$@"
 

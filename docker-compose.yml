@@ -6,6 +6,7 @@ services:
     environment:
       POSTGRES_USER: homework
       POSTGRES_PASSWORD: DazBMyGQdKqKG  # FIXME: remember to chg passwd before deploying to PROD
+      POSTGRES_DB: users_db
       PGDATA: /data/postgres
     volumes:
       - users_data:/data/postgres
