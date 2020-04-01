@@ -25,6 +25,8 @@ var (
 func main() {
 	// TODO: write tests, run with `go test -race`
 
+	flag.Parse()
+
 	// FIXME: pass Postgres options via env vars (esp. password) - probably as a standard connection string
 	// db = NewMockDB()
 	var err error
