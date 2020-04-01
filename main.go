@@ -62,10 +62,6 @@ type Database interface {
 	Close() error
 }
 
-type UserFilter struct {
-	Technology string
-}
-
 func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: Content-Type, Accepted
 
@@ -73,17 +69,11 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: active=true|false|*
 	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: move to a separate helper function
-	query := r.URL.Query()
-	filter := UserFilter{
-		Technology: query.Get("technology"),
-	}
-	if filter.Technology != "" && filter.Technology != "*" && !validTechnology[filter.Technology] {
+	filter, err := NewUserFilter(r.URL.Query())
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		// TODO: [LATER] avoid duplication of valid technology values in lists
-		fmt.Fprint(w, "error: technology query must be one of: * go java js php")
+		fmt.Fprint(w, "error: ", err)
 		return
-	} else if filter.Technology == "" {
-		filter.Technology = "*"
 	}
 
 	users, err := db.ListUsers(filter)
