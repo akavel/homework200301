@@ -72,11 +72,11 @@ func (db *PostgresDB) ListUsers(filter UserFilter) ([]*User, error) {
 	if filter.Technology != "*" {
 		query.Where(`technology = ?`, filter.Technology)
 	}
-	if filter.Active != nil {
-		if *filter.Active {
-			query.Where(`deleted IS NULL`)
-		} else {
+	if filter.Deleted != nil {
+		if *filter.Deleted {
 			query.Where(`deleted IS NOT NULL`)
+		} else {
+			query.Where(`deleted IS NULL`)
 		}
 	}
 
