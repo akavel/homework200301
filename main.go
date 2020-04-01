@@ -173,16 +173,16 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	err = db.CreateUser(&u)
 	if err != nil {
+		if errors.As(err, &ErrConflict{}) {
+			w.WriteHeader(http.StatusConflict)
+			// FIXME: below message is currently too much of a leap of faith; need to make the whole path more robust
+			fmt.Fprint(w, "error: user with the same .email already exists")
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "error: ", err)
 		return
 	}
-
-	// if conflict != nil {
-	// 	w.WriteHeader(http.StatusConflict)
-	// 	fmt.Fprint(w, "error: user with the same .email already exists")
-	// 	return
-	// }
 
 	// FIXME: base URL below should be customizable via flag
 	w.Header().Add("Location", "/v1/user/"+u.Email)

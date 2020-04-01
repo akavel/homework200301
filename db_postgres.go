@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -9,6 +10,11 @@ import (
 	"github.com/go-pg/pg/v9"
 	"github.com/go-pg/pg/v9/orm"
 )
+
+type ErrConflict struct{ err error }
+
+func (e ErrConflict) Error() string { return e.err.Error() }
+func (e ErrConflict) Unwrap() error { return e.err }
 
 type PostgresDB struct {
 	pg *pg.DB
@@ -97,7 +103,14 @@ func (db *PostgresDB) CreateUser(u *User) error {
 	err := db.pg.Insert(u)
 	// TODO: what happens if unique constraint violated?
 	if err != nil {
-		log.Printf("CreateUser: %T %#v", err, err)
+		// If the error is a violation of UNIQUE constraint, wrap it in an
+		// appropriate type to make detection easier. See:
+		// https://www.postgresql.org/docs/12/errcodes-appendix.html
+		if pgErrCode(err) == "23505" {
+			err = ErrConflict{err}
+			return fmt.Errorf("creating user: %w", err)
+		}
+		log.Printf("CreateUser: %#v", err)
 		return fmt.Errorf("creating user: %w", err)
 	}
 	return nil
@@ -127,6 +140,18 @@ func (db *PostgresDB) DeleteUser(email string) error {
 		log.Printf("CRIT: multiple rows affected in DeleteUser(email=%q): %d", email, rows)
 		return nil
 	}
+}
+
+// pgErrCode checks if err is a Postgres error type defined by pg package (i.e.
+// pg.Error), and returns the error code (as string) if yes. Otherwise, an
+// empty string is returned.
+func pgErrCode(err error) string {
+	var pgErr pg.Error
+	if !errors.As(err, &pgErr) {
+		return ""
+	}
+	// https://www.postgresql.org/docs/12/protocol-error-fields.html
+	return pgErr.Field('C')
 }
 
 type pgLogger struct{}
