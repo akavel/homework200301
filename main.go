@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/go-pg/pg/v9"
 	"github.com/gorilla/mux"
@@ -116,7 +115,6 @@ var validTechnology = map[string]bool{
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
-
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
@@ -128,23 +126,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate fields
-	// TODO: move validation to separate func, e.g. method of User type
-	// TODO: return all validation errors, not just the first one
-	switch {
-	case !strings.Contains(u.Email, "@"):
-		// TODO: also verify there's something before '@' and after '@'
-		// TODO: consider more advanced validation, though this is tricky; if applicable, consider sending confirmation email
-		err = errors.New(".email is not a valid email address")
-	case !validTechnology[u.Technology]:
-		err = errors.New(".technology must be one of: go java js php")
-	case u.Deleted != nil:
-		err = errors.New(".deleted must be empty")
-	}
-	// TODO: .birthday probably shouldn't be in future
-	// TODO: validate .phone if provided (there's some pkg for this IIRC)
-	// TODO: arguably, non-optional fields should also be non-empty, though
-	// question is how far we want to go with validation, e.g. is "x" a
-	// valid address?
+	err = u.Validate()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "error: ", err)

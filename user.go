@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"strings"
 	"time"
 )
 
@@ -20,4 +22,28 @@ type User struct {
 	Phone      *string    `json:"phone",omitempty`
 	Technology string     `json:"technology" pg:",notnull"`
 	Deleted    *time.Time `json:"deleted,omitempty"`
+}
+
+// Validate checks if User fields have allowed values. If not, an error is
+// returned with a detailed message.
+func (u *User) Validate() error {
+	// TODO: return all validation errors, not just the first one
+	switch {
+	case !strings.Contains(u.Email, "@"):
+		// TODO: also verify there's something before '@' and after '@'
+		// TODO: consider more advanced validation, though this is tricky; if
+		// applicable, consider sending confirmation email instead
+		return errors.New(".email is not a valid email address")
+	case !validTechnology[u.Technology]:
+		return errors.New(".technology must be one of: go java js php")
+	case u.Deleted != nil:
+		return errors.New(".deleted must be empty")
+	default:
+		return nil
+	}
+	// TODO: .birthday probably shouldn't be in future
+	// TODO: validate .phone contents format if field provided (there's some pkg for this IIRC)
+	// TODO: arguably, non-optional fields should also be non-empty, though
+	// question is how far we want to go with validation, e.g. is "x" a
+	// valid address?
 }
