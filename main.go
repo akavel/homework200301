@@ -53,7 +53,7 @@ func main() {
 
 // TODO: [LATER] introduce Context to methods, to allow timeouts control
 type Database interface {
-	ListUsers() ([]*User, error) // TODO: listing options (query)
+	ListUsers(filter UserFilter) ([]*User, error)
 	GetUser(email string) (*User, error)
 	CreateUser(u *User) error
 	ModifyUser(u *User) error
@@ -62,12 +62,31 @@ type Database interface {
 	Close() error
 }
 
+type UserFilter struct {
+	Technology string
+}
+
 func listUsers(w http.ResponseWriter, r *http.Request) {
-	// TODO: query: technology=*|php|go|java|js,active=true|false|*
-	// TODO: query: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: Content-Type, Accepted
 
-	users, err := db.ListUsers()
+	// Parse query into filters
+	// TODO: active=true|false|*
+	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
+	// TODO: move to a separate helper function
+	query := r.URL.Query()
+	filter := UserFilter{
+		Technology: query.Get("technology"),
+	}
+	if filter.Technology != "" && filter.Technology != "*" && !validTechnology[filter.Technology] {
+		w.WriteHeader(http.StatusBadRequest)
+		// TODO: [LATER] avoid duplication of valid technology values in lists
+		fmt.Fprint(w, "error: technology query must be one of: * go java js php")
+		return
+	} else if filter.Technology == "" {
+		filter.Technology = "*"
+	}
+
+	users, err := db.ListUsers(filter)
 	if err != nil {
 		// TODO: return JSON-formatted errors?
 		w.WriteHeader(http.StatusInternalServerError)
