@@ -116,6 +116,30 @@ func (db *PostgresDB) CreateUser(u *User) error {
 	return nil
 }
 
+func (db *PostgresDB) ModifyUser(u *User) error {
+	result, err := db.pg.Model(u).
+		Where(`email = ?`, u.Email).
+		Where(`deleted IS NULL`).
+		Update()
+	if err != nil {
+		log.Printf("ModifyUser: %#v", err)
+		return fmt.Errorf("modifying user: %w", err)
+	}
+
+	rows := result.RowsAffected()
+	switch rows {
+	case 0:
+		// FIXME: distinct error type for 'not found'
+		return fmt.Errorf("user not found: %s", u.Email)
+	case 1:
+		// ok
+		return nil
+	default:
+		log.Printf("CRIT: multiple rows affected in ModifyUser(email=%q): %d", u.Email, rows)
+		return nil
+	}
+}
+
 func (db *PostgresDB) DeleteUser(email string) error {
 	// TODO: [LATER] consider using pg's "soft_delete" annotation & support
 	result, err := db.pg.Model((*User)(nil)).

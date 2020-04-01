@@ -1,0 +1,9 @@
+{
+    "email": "jane@example.com",
+    "name": "JANE 2",
+    "surname": "EXAMPLE 2",
+    "password": "FLOWER 2",
+    "birthday": "1990-02-02T00:00:00Z",
+    "address": "ADDRESS 2",
+    "technology": "go"
+}

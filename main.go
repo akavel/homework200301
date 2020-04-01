@@ -56,6 +56,7 @@ type Database interface {
 	ListUsers() ([]*User, error) // TODO: listing options (query)
 	GetUser(email string) (*User, error)
 	CreateUser(u *User) error
+	ModifyUser(u *User) error
 	DeleteUser(email string) error
 
 	Close() error
@@ -152,7 +153,47 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyUser(w http.ResponseWriter, r *http.Request) {
-	panic("NIY")
+	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
+	id := mux.Vars(r)["id"]
+	// TODO: quick fail if id empty or invalid?
+
+	var u User
+	err := json.NewDecoder(r.Body).Decode(&u)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
+
+	// Validate fields
+	if u.Email != id {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "error: .email field does not match the value in the URL")
+		return
+	}
+	err = u.Validate()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
+
+	// TODO: [LATER] consider adding data versioning to User to let clients avoid race conditions
+
+	err = db.ModifyUser(&u)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "error: ", err)
+		return
+	}
+
+	// if found == nil {
+	// 	w.WriteHeader(http.StatusNotFound)
+	// 	fmt.Fprint(w, "error: user not found")
+	// 	return
+	// }
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
