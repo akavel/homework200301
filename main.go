@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	addr = flag.String("http", ":8080", "http address to listen on")
+	addr  = flag.String("http", ":8080", "http address to listen on")
+	rqlog = flag.String("rqlog", "requests.log", "file to log requests information into")
 )
 
 var (
@@ -42,7 +43,13 @@ func main() {
 	// TODO: [LATER] log any error from Close()
 	defer db.Close()
 
+	rqLogger, err := NewRequestLogger(*rqlog)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := mux.NewRouter()
+	r.Use(rqLogger.WrapHTTPHandler)
 	r.Methods("GET").Path("/v1/user").HandlerFunc(listUsers)
 	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
 	r.Methods("POST").Path("/v1/user").HandlerFunc(createUser)
