@@ -68,9 +68,18 @@ func (db *PostgresDB) Close() error {
 func (db *PostgresDB) ListUsers(filter UserFilter) ([]*User, error) {
 	var users []*User
 	query := db.pg.Model(&users)
+
 	if filter.Technology != "*" {
 		query.Where(`technology = ?`, filter.Technology)
 	}
+	if filter.Active != nil {
+		if *filter.Active {
+			query.Where(`deleted IS NULL`)
+		} else {
+			query.Where(`deleted IS NOT NULL`)
+		}
+	}
+
 	err := query.Select()
 	if err != nil {
 		return nil, fmt.Errorf("listing users: %w", err)

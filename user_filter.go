@@ -7,6 +7,7 @@ import (
 
 type UserFilter struct {
 	Technology string
+	Active     *bool
 }
 
 func NewUserFilter(query url.Values) (UserFilter, error) {
@@ -23,5 +24,19 @@ func NewUserFilter(query url.Values) (UserFilter, error) {
 		return UserFilter{}, errors.New("'technology' query parameter must be one of: * go java js php")
 	}
 
+	v = query.Get("active")
+	switch v {
+	case "*":
+		f.Active = nil
+	case "", "yes", "true":
+		f.Active = newBool(true)
+	case "no", "false":
+		f.Active = newBool(false)
+	default:
+		return UserFilter{}, errors.New("'active' query parameter must be one of: * yes no true false")
+	}
+
 	return f, nil
 }
+
+func newBool(v bool) *bool { return &v }

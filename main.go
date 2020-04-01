@@ -66,7 +66,6 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	// TODO: Content-Type, Accepted
 
 	// Parse query into filters
-	// TODO: active=true|false|*
 	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: move to a separate helper function
 	filter, err := NewUserFilter(r.URL.Query())

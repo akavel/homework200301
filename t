@@ -23,5 +23,9 @@ function tech() {
     (set -x ; curl -i "http://localhost:8080/v1/user?technology=${1}" ) | sed 's/},{/},\'$'\n''{/g' ; echo
 }
 
+function query() {
+    (set -x ; curl -i "http://localhost:8080/v1/user?${1}" ) | sed 's/},{/},\'$'\n''{/g' ; echo
+}
+
 "$@"
 
