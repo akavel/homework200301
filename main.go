@@ -111,10 +111,6 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var validTechnology = map[string]bool{
-	"go": true, "java": true, "js": true, "php": true,
-}
-
 func createUser(w http.ResponseWriter, r *http.Request) {
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)

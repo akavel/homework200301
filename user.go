@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+var validTechnology = map[string]bool{
+	"go": true, "java": true, "js": true, "php": true,
+}
+
 // FIXME: make Technology an enum or FK in Postgres
 // TODO: [LATER] pg-related annotations & fields are internal and should not be exposed in exported type (see orm.Table?)
 type User struct {
