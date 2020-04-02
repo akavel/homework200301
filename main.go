@@ -31,7 +31,8 @@ func main() {
 	// db = NewMockDB()
 	var err error
 	db, err = ConnectPostgres(&pg.Options{
-		Addr:            "localhost:5432",
+		// Addr:            "localhost:5432",
+		Addr:            "users_db:5432",
 		User:            "homework",
 		Password:        "DazBMyGQdKqKG",
 		Database:        "users_db",

@@ -1,0 +1,6 @@
+# We want only Go files during build, to improve caching (avoid unnecessary rebuilds)
+*
+!go.mod
+!go.sum
+!**/*.go
+
