@@ -5,7 +5,7 @@ version: '3'
 services:
 
   users_db:
-    image: postgres:12.2  # TODO: [LATER] switch to -alpine
+    image: postgres:12.2-alpine
     environment:
       POSTGRES_USER: homework
       POSTGRES_PASSWORD: DazBMyGQdKqKG  # FIXME: remember to chg passwd before deploying to PROD
