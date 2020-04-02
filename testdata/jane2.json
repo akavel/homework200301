@@ -5,5 +5,6 @@
     "password": "FLOWER 2",
     "birthday": "1990-02-02T00:00:00Z",
     "address": "ADDRESS 2",
+    "phone": "111 222 333",
     "technology": "go"
 }
