@@ -20,8 +20,8 @@ services:
   users_rest:
     build: .
     image: users-rest:dev
-    # environment:
-      # FIXME: postgres params
+    environment:
+      USERS_DBCONN: "postgres://homework:DazBMyGQdKqKG@users_db:5432/users_db?sslmode=disable"
     ports:
       - "8080:8080"
     depends_on:

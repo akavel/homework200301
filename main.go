@@ -10,11 +10,13 @@ import (
 
 	"github.com/go-pg/pg/v9"
 	"github.com/gorilla/mux"
+	"github.com/jamiealquiza/envy" // TODO: fork it to avoid cobra & pflag dependencies, contribute back upstream
 )
 
 var (
-	addr  = flag.String("http", ":8080", "http address to listen on")
-	rqlog = flag.String("rqlog", "requests.log", "file to log requests information into")
+	addr   = flag.String("http", ":8080", "http address to listen on")
+	rqlog  = flag.String("rqlog", "requests.log", "file to log requests information into")
+	dbconn = flag.String("dbconn", "postgres://login:password@localhost:5432/users_db", "Postgres database connection string")
 )
 
 var (
@@ -25,20 +27,17 @@ var (
 func main() {
 	// TODO: write tests, run with `go test -race`
 
+	envy.Parse("USERS") // Propagate env variables into flags
 	flag.Parse()
 
-	// FIXME: pass Postgres options via env vars (esp. password) - probably as a standard connection string
-	// db = NewMockDB()
-	var err error
-	db, err = ConnectPostgres(&pg.Options{
-		// Addr:            "localhost:5432",
-		Addr:            "users_db:5432",
-		User:            "homework",
-		Password:        "DazBMyGQdKqKG",
-		Database:        "users_db",
-		ApplicationName: "users_go",
-		// TODO: [LATER] add timeouts etc.
-	})
+	// Connect to Postgres DB
+	dbopt, err := pg.ParseURL(*dbconn)
+	if err != nil {
+		log.Fatalf("parsing -dbconn flag value: %s", err)
+	}
+	dbopt.ApplicationName = "users_go"
+	// TODO: [LATER] add timeouts etc. to dbopt
+	db, err = ConnectPostgres(dbopt)
 	if err != nil {
 		log.Fatalf("initializing Postgres DB: %s", err)
 	}
