@@ -21,6 +21,8 @@ services:
     build: .
     image: users-rest:dev
     environment:
+      # NOTE: using ?sslmode=disable to work around "SSL is not enabled on the server" error, see: https://stackoverflow.com/q/21959148
+      # TODO: enable SSL in postgres?
       USERS_DBCONN: "postgres://homework:DazBMyGQdKqKG@users_db:5432/users_db?sslmode=disable"
     ports:
       - "8080:8080"
