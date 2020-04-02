@@ -3,7 +3,8 @@ version: '3'
 # TODO: consider adding a script for filling the DB with mock testing data
 
 services:
-  postgres:
+
+  users_db:
     image: postgres:12.2  # TODO: [LATER] switch to -alpine
     environment:
       POSTGRES_USER: homework
@@ -12,8 +13,19 @@ services:
       PGDATA: /data/postgres
     volumes:
       - users_data:/data/postgres
+    # ports:
+    #   - "5432:5432"
+    restart: unless-stopped
+
+  users_rest:
+    build: .
+    image: users-rest:dev
+    # environment:
+      # FIXME: postgres params
     ports:
-      - "5432:5432"
+      - "8080:8080"
+    # TODO: volume for requests.log?
+    # TODO: capture stdout & stderr to some central logger?
     restart: unless-stopped
 
 volumes:
