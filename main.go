@@ -72,37 +72,25 @@ type Database interface {
 }
 
 func listUsers(w http.ResponseWriter, r *http.Request) {
-	// TODO: Content-Type, Accepted
-
 	// Parse query into filters
 	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: move to a separate helper function
 	filter, err := NewUserFilter(r.URL.Query())
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	users, err := db.ListUsers(filter)
 	if err != nil {
-		// TODO: return JSON-formatted errors?
-		w.WriteHeader(http.StatusInternalServerError)
-		// TODO: [LATER] maybe log error if Fprintf failed, here and everywhere else
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	// Let's print `[]` instead of `null` in the JSON response in case of empty results list
 	if users == nil {
 		users = []*User{}
 	}
-
-	err = json.NewEncoder(w).Encode(users)
-	if err != nil {
-		log.Print("listUsers: ", err)
-		// TODO: if not too late, write 500 to w
-		return
-	}
+	RespondJSON(w, http.StatusOK, users)
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -111,20 +99,13 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 	found, err := db.GetUser(id)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	if found == nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	err = json.NewEncoder(w).Encode(found)
-	if err != nil {
-		log.Printf("getUser[%q]: %s", id, err)
-		// TODO: if not too late, write 500 to w
-		return
+	if found != nil {
+		RespondJSON(w, http.StatusOK, found)
+	} else {
+		RespondJSON(w, http.StatusNotFound, nil)
 	}
 }
 
@@ -132,37 +113,31 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		// TODO: return JSON-formatted errors?
-		w.WriteHeader(http.StatusBadRequest)
-		// TODO: maybe log Fprintf error, here and everywhere else
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	// Validate fields
 	err = u.Validate()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	err = db.CreateUser(&u)
 	if err != nil {
 		if errors.As(err, &ErrConflict{}) {
-			w.WriteHeader(http.StatusConflict)
 			// FIXME: below message is currently too much of a leap of faith; need to make the whole path more robust
-			fmt.Fprint(w, "error: user with the same .email already exists")
+			RespondError(w, http.StatusConflict, errors.New("user with the same .email already exists"))
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	// FIXME: base URL below should be customizable via flag
 	w.Header().Add("Location", "/v1/user/"+u.Email)
-	w.WriteHeader(http.StatusNoContent)
+	RespondJSON(w, http.StatusNoContent, nil)
 }
 
 func modifyUser(w http.ResponseWriter, r *http.Request) {
@@ -173,21 +148,18 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	// Validate fields
 	if u.Email != id {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error: .email field does not match the value in the URL")
+		RespondError(w, http.StatusBadRequest, errors.New(".email field does not match the value in the URL"))
 		return
 	}
 	err = u.Validate()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -195,8 +167,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 
 	err = db.ModifyUser(&u)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -206,7 +177,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	w.WriteHeader(http.StatusNoContent)
+	RespondJSON(w, http.StatusNoContent, nil)
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -216,8 +187,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	err := db.DeleteUser(id)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "error: ", err)
+		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -227,5 +197,32 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	w.WriteHeader(http.StatusNoContent)
+	RespondJSON(w, http.StatusNoContent, nil)
+}
+
+// RespondError writes the error message from err into w, and sets the HTTP
+// status of the response.
+//
+// TODO: emit JSON-formatted errors? (via RespondJSON)
+func RespondError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	// TODO: [LATER] maybe return/log error if Fprint failed
+	fmt.Fprint(w, "error: ", err)
+}
+
+// RespondJSON marshals non-nil obj into w as JSON, and sets the HTTP status of
+// the response. If obj is a literal nil, only the response status and headers
+// are set (no data is serialized).
+func RespondJSON(w http.ResponseWriter, status int, obj interface{}) {
+	// TODO: should we also set Content-Type if not printing any contents (obj==nil)?
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if obj == nil {
+		return
+	}
+	err := json.NewEncoder(w).Encode(obj)
+	if err != nil && errors.As(err, &json.MarshalerError{}) {
+		log.Printf("BUG: RespondJSON called with an object of type %T that doesn't serialize to JSON: %s", obj, err)
+	}
 }
