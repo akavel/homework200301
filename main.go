@@ -167,16 +167,14 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 
 	err = db.ModifyUser(&u)
 	if err != nil {
+		// TODO: [LATER] below block is ugly, find a nicer way of translating errors (helper func?)
+		if errors.As(err, &ErrNotFound{}) {
+			RespondError(w, http.StatusNotFound, err)
+			return
+		}
 		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	// if found == nil {
-	// 	w.WriteHeader(http.StatusNotFound)
-	// 	fmt.Fprint(w, "error: user not found")
-	// 	return
-	// }
-
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 
@@ -187,16 +185,13 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	err := db.DeleteUser(id)
 	if err != nil {
+		if errors.As(err, &ErrNotFound{}) {
+			RespondError(w, http.StatusNotFound, err)
+			return
+		}
 		RespondError(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	// if found == nil {
-	// 	w.WriteHeader(http.StatusNotFound)
-	// 	fmt.Fprint(w, "error: user not found")
-	// 	return
-	// }
-
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 

@@ -11,11 +11,6 @@ import (
 	"github.com/go-pg/pg/v9/orm"
 )
 
-type ErrConflict struct{ err error }
-
-func (e ErrConflict) Error() string { return e.err.Error() }
-func (e ErrConflict) Unwrap() error { return e.err }
-
 type PostgresDB struct {
 	pg *pg.DB
 }
@@ -120,7 +115,7 @@ func (db *PostgresDB) CreateUser(u *User) error {
 		// appropriate type to make detection easier. See:
 		// https://www.postgresql.org/docs/12/errcodes-appendix.html
 		if pgErrCode(err) == "23505" {
-			err = ErrConflict{err}
+			err = ErrConflict{wraperr{err}}
 			return fmt.Errorf("creating user: %w", err)
 		}
 		log.Printf("CreateUser: %#v", err)
@@ -142,8 +137,7 @@ func (db *PostgresDB) ModifyUser(u *User) error {
 	rows := result.RowsAffected()
 	switch rows {
 	case 0:
-		// FIXME: distinct error type for 'not found'
-		return fmt.Errorf("user not found: %s", u.Email)
+		return ErrNotFound{wraperr{fmt.Errorf("user not found: %s", u.Email)}}
 	case 1:
 		// ok
 		return nil
@@ -168,8 +162,7 @@ func (db *PostgresDB) DeleteUser(email string) error {
 	rows := result.RowsAffected()
 	switch rows {
 	case 0:
-		// FIXME: distinct error type for 'not found'
-		return fmt.Errorf("user not found: %s", email)
+		return ErrNotFound{wraperr{fmt.Errorf("user not found: %s", email)}}
 	case 1:
 		// ok
 		return nil
