@@ -23,7 +23,7 @@ type User struct {
 	Password   string     `json:"password" pg:",notnull"`
 	Birthday   time.Time  `json:"birthday" pg:",notnull"`
 	Address    string     `json:"address" pg:",notnull"`
-	Phone      *string    `json:"phone",omitempty`
+	Phone      *string    `json:"phone,omitempty"`
 	Technology string     `json:"technology" pg:",notnull"`
 	Deleted    *time.Time `json:"deleted,omitempty"`
 }

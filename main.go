@@ -216,8 +216,12 @@ func RespondJSON(w http.ResponseWriter, status int, obj interface{}) {
 	if obj == nil {
 		return
 	}
-	err := json.NewEncoder(w).Encode(obj)
-	if err != nil && errors.As(err, &json.MarshalerError{}) {
+	buf, err := json.Marshal(obj)
+	if err != nil {
 		log.Printf("BUG: RespondJSON called with an object of type %T that doesn't serialize to JSON: %s", obj, err)
+		return
 	}
+	// Note: ignoring write errors, as we don't want info every time client
+	// decided to ignore us and disconnect
+	w.Write(buf)
 }
