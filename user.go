@@ -33,6 +33,13 @@ type User struct {
 func (u *User) Validate() error {
 	// TODO: return all validation errors, not just the first one
 	switch {
+
+	case u.Name == nil:
+		return errors.New(".name mandatory field is missing")
+
+	case u.Surname == nil:
+		return errors.New(".surname mandatory field is missing")
+
 	case u.Email == nil:
 		return errors.New(".email mandatory field is missing")
 	case !strings.Contains(*u.Email, "@"):
@@ -40,17 +47,30 @@ func (u *User) Validate() error {
 		// TODO: consider more advanced validation, though this is tricky; if
 		// applicable, consider sending confirmation email instead
 		return errors.New(".email is not a valid email address")
+
+	case u.Password == nil:
+		return errors.New(".password mandatory field is missing")
+
+	case u.Birthday == nil:
+		return errors.New(".birthday mandatory field is missing")
+	// TODO: .birthday probably shouldn't be in future
+
+	case u.Address == nil:
+		return errors.New(".address mandatory field is missing")
+
+	// TODO: validate .phone contents format if field provided (there's some pkg for this IIRC)
+
 	case u.Technology == nil:
 		return errors.New(".technology mandatory field is missing")
 	case !validTechnology[*u.Technology]:
 		return errors.New(".technology must be one of: go java js php")
+
 	case u.Deleted != nil:
 		return errors.New(".deleted must be empty")
+
 	default:
 		return nil
 	}
-	// TODO: .birthday probably shouldn't be in future
-	// TODO: validate .phone contents format if field provided (there's some pkg for this IIRC)
 	// TODO: arguably, non-optional fields should also be non-empty, though
 	// question is how far we want to go with validation, e.g. is "x" a
 	// valid address?

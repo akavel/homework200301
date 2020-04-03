@@ -150,7 +150,6 @@ func TestServer_PostUser_Validation(t *testing.T) {
 "name": "John",
 "surname": "Smith",
 "password": "some pwd",
-"birthday": "1950-01-01T00:00:00Z",
 "address": "Some Street 17\nSome City",
 "phone": "111 222 333",
 "technology": "go"
