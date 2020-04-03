@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -368,7 +370,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?technology=java&deleted=yes",
 			wantFilter: &UserFilter{
-				Technology: "*",
+				Technology: "java",
 				Deleted:    newBool(true),
 			},
 			wantStatus: http.StatusOK,
@@ -384,6 +386,42 @@ func TestServer_ListUsers(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		gotFilter := make(chan *UserFilter, 1)
+		srv := Server{
+			DB: callbackDB{
+				listUsers: func(filter UserFilter) ([]*User, error) {
+					gotFilter <- &filter
+					// close chan to force panic if func called more than once
+					close(gotFilter)
+					return nil, nil
+				},
+			},
+		}
+		r := mux.NewRouter()
+		srv.RegisterAt(r)
+		listener := httptest.NewServer(r)
+		client := listener.Client()
+
+		rs, err := client.Get(listener.URL + "/v1/user" + tt.query)
+		listener.Close()
+		if err != nil {
+			t.Errorf("%q: HTTP request error: %s", tt.query, err)
+			continue
+		}
+		if rs.StatusCode != tt.wantStatus {
+			t.Errorf("%q: want status %v, got %v (%v)", tt.query, tt.wantStatus, rs.StatusCode, rs.Status)
+		}
+		if tt.wantFilter != nil {
+			select {
+			case f := <-gotFilter:
+				if !reflect.DeepEqual(f, tt.wantFilter) {
+					t.Errorf("%q: bad filter:\nwant: %s\nhave: %s",
+						tt.query, dumpJSON(tt.wantFilter), dumpJSON(f))
+				}
+			default:
+				t.Errorf("%q: listUsers not called", tt.query)
+			}
+		}
 	}
 }
 
@@ -402,3 +440,8 @@ func (db callbackDB) CreateUser(u *User) error                     { return db.c
 func (db callbackDB) ModifyUser(u *User) error                     { return db.modifyUser(u) }
 func (db callbackDB) DeleteUser(email string) error                { return db.deleteUser(email) }
 func (db callbackDB) Close() error                                 { return db.close() }
+
+func dumpJSON(v interface{}) string {
+	buf, _ := json.Marshal(v)
+	return string(buf)
+}
