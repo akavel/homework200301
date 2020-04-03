@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func TestServer_PostUser_Validation(t *testing.T) {
+func TestServer_PostAndPutUser_Validation(t *testing.T) {
 	tests := []struct {
 		comment       string
 		rq            string
@@ -212,13 +212,13 @@ func TestServer_PostUser_Validation(t *testing.T) {
 			comment: "correct User, with optional .phone absent",
 			rq: `
 {
-"email": "greg@smith.com",
-"name": "Greg",
+"email": "john@smith.com",
+"name": "John",
 "surname": "Smith",
 "password": "some pwd",
-"birthday": "1966-01-01T00:00:00Z",
-"address": "Tiny Town 23",
-"technology": "js"
+"birthday": "1950-01-01T00:00:00Z",
+"address": "Some Street 17\nSome City",
+"technology": "go"
 }
 `,
 			wantStatus: http.StatusNoContent,
@@ -232,24 +232,53 @@ func TestServer_PostUser_Validation(t *testing.T) {
 		listener := httptest.NewServer(r)
 		client := listener.Client()
 
+		// Test POST
 		rs, err := client.Post(listener.URL+"/v1/user", "application/json", strings.NewReader(tt.rq))
 		if err != nil {
-			t.Errorf("%q: HTTP query error: %s", tt.comment, err)
+			t.Errorf("POST %q: HTTP query error: %s", tt.comment, err)
 			listener.Close()
 			continue
 		}
 		if rs.StatusCode != tt.wantStatus {
-			t.Errorf("%q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
+			t.Errorf("POST %q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
 		}
 		body, err := ioutil.ReadAll(rs.Body)
 		rs.Body.Close()
 		if err != nil {
-			t.Errorf("%q: error reading Body: %s", tt.comment, err)
+			t.Errorf("POST %q: error reading Body: %s", tt.comment, err)
 			listener.Close()
 			continue
 		}
 		if !strings.Contains(string(body), tt.wantReplyWith) {
-			t.Errorf("%q: want reply with: %q, got:\n%s", tt.comment, tt.wantReplyWith, string(body))
+			t.Errorf("POST %q: want reply with: %q, got:\n%s", tt.comment, tt.wantReplyWith, string(body))
+		}
+
+		// Test PUT
+		req, err := http.NewRequest("PUT", listener.URL+"/v1/user/john@smith.com", strings.NewReader(tt.rq))
+		if err != nil {
+			t.Errorf("PUT %q: request building error: %s", tt.comment, err)
+			listener.Close()
+			continue
+		}
+		req.Header.Set("Content-Type", "application/json")
+		rs, err = client.Do(req)
+		if err != nil {
+			t.Errorf("PUT %q: HTTP query error: %s", tt.comment, err)
+			listener.Close()
+			continue
+		}
+		if rs.StatusCode != tt.wantStatus {
+			t.Errorf("PUT %q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
+		}
+		body, err = ioutil.ReadAll(rs.Body)
+		rs.Body.Close()
+		if err != nil {
+			t.Errorf("PUT %q: error reading Body: %s", tt.comment, err)
+			listener.Close()
+			continue
+		}
+		if !strings.Contains(string(body), tt.wantReplyWith) {
+			t.Errorf("PUT %q: want reply with: %q, got:\n%s", tt.comment, tt.wantReplyWith, string(body))
 		}
 
 		listener.Close()
