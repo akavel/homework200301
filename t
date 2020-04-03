@@ -27,5 +27,12 @@ function query() {
     (set -x ; curl -i "http://localhost:8080/v1/user?${1}" ) | sed 's/},{/},\'$'\n''{/g' ; echo
 }
 
+function cov() {
+    set -xeuo pipefail
+    go test -race -coverprofile=cov.out
+    go tool cover -html=cov.out -o=cov.html
+    open cov.html
+}
+
 "$@"
 
