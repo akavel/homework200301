@@ -16,15 +16,15 @@ type User struct {
 	// ID is the field required by go-pg ORM as the primary key
 	ID int64 `json:"-"`
 
-	Name    string `json:"name" pg:",notnull"`
-	Surname string `json:"surname" pg:",notnull"`
-	Email   string `json:"email" pg:",notnull"`
+	Name    *string `json:"name" pg:",notnull"`
+	Surname *string `json:"surname" pg:",notnull"`
+	Email   *string `json:"email" pg:",notnull"`
 	// FIXME: [LATER] only store a hash of the password
-	Password   string     `json:"password" pg:",notnull"`
-	Birthday   time.Time  `json:"birthday" pg:",notnull"`
-	Address    string     `json:"address" pg:",notnull"`
+	Password   *string    `json:"password" pg:",notnull"`
+	Birthday   *time.Time `json:"birthday" pg:",notnull"`
+	Address    *string    `json:"address" pg:",notnull"`
 	Phone      *string    `json:"phone,omitempty"`
-	Technology string     `json:"technology" pg:",notnull"`
+	Technology *string    `json:"technology" pg:",notnull"`
 	Deleted    *time.Time `json:"deleted,omitempty"`
 }
 
@@ -33,12 +33,16 @@ type User struct {
 func (u *User) Validate() error {
 	// TODO: return all validation errors, not just the first one
 	switch {
-	case !strings.Contains(u.Email, "@"):
+	case u.Email == nil:
+		return errors.New(".email mandatory field is missing")
+	case !strings.Contains(*u.Email, "@"):
 		// TODO: also verify there's something before '@' and after '@'
 		// TODO: consider more advanced validation, though this is tricky; if
 		// applicable, consider sending confirmation email instead
 		return errors.New(".email is not a valid email address")
-	case !validTechnology[u.Technology]:
+	case u.Technology == nil:
+		return errors.New(".technology mandatory field is missing")
+	case !validTechnology[*u.Technology]:
 		return errors.New(".technology must be one of: go java js php")
 	case u.Deleted != nil:
 		return errors.New(".deleted must be empty")

@@ -143,7 +143,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FIXME: base URL below should be customizable via flag
-	w.Header().Add("Location", "/v1/user/"+u.Email)
+	w.Header().Add("Location", "/v1/user/"+*u.Email)
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 
@@ -160,13 +160,13 @@ func (s *Server) modifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate fields
-	if u.Email != id {
-		RespondError(w, http.StatusBadRequest, errors.New(".email field does not match the value in the URL"))
-		return
-	}
 	err = u.Validate()
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, err)
+		return
+	}
+	if *u.Email != id {
+		RespondError(w, http.StatusBadRequest, errors.New(".email field does not match the value in the URL"))
 		return
 	}
 

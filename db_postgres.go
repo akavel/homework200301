@@ -126,7 +126,7 @@ func (db *PostgresDB) CreateUser(u *User) error {
 
 func (db *PostgresDB) ModifyUser(u *User) error {
 	result, err := db.pg.Model(u).
-		Where(`email = ?`, u.Email).
+		Where(`email = ?`, *u.Email).
 		Where(`deleted IS NULL`).
 		Update()
 	if err != nil {
@@ -137,12 +137,12 @@ func (db *PostgresDB) ModifyUser(u *User) error {
 	rows := result.RowsAffected()
 	switch rows {
 	case 0:
-		return ErrNotFound{wraperr{fmt.Errorf("user not found: %s", u.Email)}}
+		return ErrNotFound{wraperr{fmt.Errorf("user not found: %s", *u.Email)}}
 	case 1:
 		// ok
 		return nil
 	default:
-		log.Printf("CRIT: multiple rows affected in ModifyUser(email=%q): %d", u.Email, rows)
+		log.Printf("CRIT: multiple rows affected in ModifyUser(email=%q): %d", *u.Email, rows)
 		return nil
 	}
 }
