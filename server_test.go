@@ -313,3 +313,92 @@ func (db nullDB) CreateUser(u *User) error                     { return nil }
 func (db nullDB) ModifyUser(u *User) error                     { return nil }
 func (db nullDB) DeleteUser(email string) error                { return nil }
 func (db nullDB) Close() error                                 { return nil }
+
+func TestServer_ListUsers(t *testing.T) {
+	tests := []struct {
+		query      string
+		wantFilter *UserFilter
+		wantStatus int
+	}{
+		{
+			query: "", // default filter
+			wantFilter: &UserFilter{
+				Technology: "*",
+				Deleted:    newBool(false),
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query: "?technology=go",
+			wantFilter: &UserFilter{
+				Technology: "go",
+				Deleted:    newBool(false),
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query:      "?technology=FOOBAR",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			query: "?deleted=*",
+			wantFilter: &UserFilter{
+				// TODO: make semantics of UserFilter fields more consistent, e.g. Technology:nil instead of "*"
+				Technology: "*",
+				Deleted:    nil,
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query: "?deleted=true",
+			wantFilter: &UserFilter{
+				Technology: "*",
+				Deleted:    newBool(true),
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query: "?technology=java&deleted=*",
+			wantFilter: &UserFilter{
+				Technology: "java",
+				Deleted:    nil,
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query: "?technology=java&deleted=yes",
+			wantFilter: &UserFilter{
+				Technology: "*",
+				Deleted:    newBool(true),
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			query:      "?deleted=FOOBAR",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			query:      "?technology=FOOBAR&deleted=yes",
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+	}
+}
+
+type callbackDB struct {
+	listUsers  func(filter UserFilter) ([]*User, error)
+	getUser    func(email string) (*User, error)
+	createUser func(u *User) error
+	modifyUser func(u *User) error
+	deleteUser func(email string) error
+	close      func() error
+}
+
+func (db callbackDB) ListUsers(filter UserFilter) ([]*User, error) { return db.listUsers(filter) }
+func (db callbackDB) GetUser(email string) (*User, error)          { return db.getUser(email) }
+func (db callbackDB) CreateUser(u *User) error                     { return db.createUser(u) }
+func (db callbackDB) ModifyUser(u *User) error                     { return db.modifyUser(u) }
+func (db callbackDB) DeleteUser(email string) error                { return db.deleteUser(email) }
+func (db callbackDB) Close() error                                 { return db.close() }
