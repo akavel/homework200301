@@ -18,15 +18,18 @@ func TestServer_PostUser_Validation(t *testing.T) {
 		wantReplyWith string
 	}{
 		// INVALID REQUESTS
+		// Non-JSON
 		{
 			comment:    "non-JSON input",
 			rq:         `hello world!`,
 			wantStatus: http.StatusBadRequest,
 		},
+		// Incorrect field values
 		{
-			comment: "invalid User: no email",
+			comment: "invalid User: invalid email (no @)",
 			rq: `
 {
+"email": "john.smith.com",
 "name": "John",
 "surname": "Smith",
 "password": "some pwd",
@@ -40,10 +43,27 @@ func TestServer_PostUser_Validation(t *testing.T) {
 			wantReplyWith: "email",
 		},
 		{
-			comment: "invalid User: invalid email (no @)",
+			comment: "invalid User: invalid value in .technology",
 			rq: `
 {
-"email": "john.smith.com",
+"email": "john@smith.com",
+"name": "John",
+"surname": "Smith",
+"password": "some pwd",
+"birthday": "1950-01-01T00:00:00Z",
+"address": "Some Street 17\nSome City",
+"phone": "111 222 333",
+"technology": "haskell"
+}
+`,
+			wantStatus:    http.StatusBadRequest,
+			wantReplyWith: "technology",
+		},
+		// Missing fields
+		{
+			comment: "invalid User: no email",
+			rq: `
+{
 "name": "John",
 "surname": "Smith",
 "password": "some pwd",
