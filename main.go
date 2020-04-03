@@ -19,11 +19,6 @@ var (
 	dbconn = flag.String("dbconn", "postgres://login:password@localhost:5432/users_db", "Postgres database connection string")
 )
 
-var (
-	// FIXME: don't use global var, create proper wrapper object instead
-	db Database
-)
-
 func main() {
 	// TODO: write tests, run with `go test -race`
 
@@ -37,7 +32,7 @@ func main() {
 	}
 	dbopt.ApplicationName = "users_go"
 	// TODO: [LATER] add timeouts etc. to dbopt
-	db, err = ConnectPostgres(dbopt)
+	db, err := ConnectPostgres(dbopt)
 	if err != nil {
 		log.Fatalf("initializing Postgres DB: %s", err)
 	}
@@ -50,14 +45,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	srv := Server{
+		DB: db,
+	}
+
 	r := mux.NewRouter()
 	r.Use(rqLogger.WrapHTTPHandler)
-	r.Methods("GET").Path("/v1/user").HandlerFunc(listUsers)
-	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(getUser)
-	r.Methods("POST").Path("/v1/user").HandlerFunc(createUser)
-	r.Methods("PUT").Path("/v1/user/{id}").HandlerFunc(modifyUser)
-	r.Methods("DELETE").Path("/v1/user/{id}").HandlerFunc(deleteUser)
+	srv.RegisterAt(r)
 	log.Fatal(http.ListenAndServe(*addr, r))
+}
+
+type Server struct {
+	DB Database
 }
 
 // TODO: [LATER] introduce Context to methods, to allow timeouts control
@@ -71,7 +70,15 @@ type Database interface {
 	Close() error
 }
 
-func listUsers(w http.ResponseWriter, r *http.Request) {
+func (s *Server) RegisterAt(r *mux.Router) {
+	r.Methods("GET").Path("/v1/user").HandlerFunc(s.listUsers)
+	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(s.getUser)
+	r.Methods("POST").Path("/v1/user").HandlerFunc(s.createUser)
+	r.Methods("PUT").Path("/v1/user/{id}").HandlerFunc(s.modifyUser)
+	r.Methods("DELETE").Path("/v1/user/{id}").HandlerFunc(s.deleteUser)
+}
+
+func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 	// Parse query into filters
 	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
 	// TODO: move to a separate helper function
@@ -81,7 +88,7 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := db.ListUsers(filter)
+	users, err := s.DB.ListUsers(filter)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, err)
 		return
@@ -93,11 +100,11 @@ func listUsers(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, users)
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	found, err := db.GetUser(id)
+	found, err := s.DB.GetUser(id)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, err)
 		return
@@ -109,7 +116,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
@@ -124,7 +131,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.CreateUser(&u)
+	err = s.DB.CreateUser(&u)
 	if err != nil {
 		if errors.As(err, &ErrConflict{}) {
 			// FIXME: below message is currently too much of a leap of faith; need to make the whole path more robust
@@ -140,7 +147,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 
-func modifyUser(w http.ResponseWriter, r *http.Request) {
+func (s *Server) modifyUser(w http.ResponseWriter, r *http.Request) {
 	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
@@ -165,7 +172,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: [LATER] consider adding data versioning to User to let clients avoid race conditions
 
-	err = db.ModifyUser(&u)
+	err = s.DB.ModifyUser(&u)
 	if err != nil {
 		// TODO: [LATER] below block is ugly, find a nicer way of translating errors (helper func?)
 		if errors.As(err, &ErrNotFound{}) {
@@ -178,12 +185,12 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 
-func deleteUser(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
 	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
 	id := mux.Vars(r)["id"]
 	// TODO: quick fail if id empty or invalid?
 
-	err := db.DeleteUser(id)
+	err := s.DB.DeleteUser(id)
 	if err != nil {
 		if errors.As(err, &ErrNotFound{}) {
 			RespondError(w, http.StatusNotFound, err)
