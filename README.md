@@ -1,3 +1,7 @@
+**Uwaga ogólna:** w projekcie pozostawiłem komentarze "FIXME" i "TODO" na oznaczenie różnych aspektów rozwojowych dla projektu, które można podjąć zależnie od dalszych potrzeb i wymagań. 
+
+Uwagi szczegółowe nawiązujące do niektórych punktów zadania:
+
 **Ad 2.:** przyjąłem angielskie nazewnictwo w API
 
 **Ad 6.:** wybrałem PostgreSQL
