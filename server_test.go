@@ -345,7 +345,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "", // default filter
 			wantFilter: &UserFilter{
-				Technology: "*",
+				Technology: nil,
 				Deleted:    newBool(false),
 			},
 			wantStatus: http.StatusOK,
@@ -353,7 +353,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?technology=go",
 			wantFilter: &UserFilter{
-				Technology: "go",
+				Technology: newString("go"),
 				Deleted:    newBool(false),
 			},
 			wantStatus: http.StatusOK,
@@ -365,8 +365,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?deleted=*",
 			wantFilter: &UserFilter{
-				// TODO: make semantics of UserFilter fields more consistent, e.g. Technology:nil instead of "*"
-				Technology: "*",
+				Technology: nil,
 				Deleted:    nil,
 			},
 			wantStatus: http.StatusOK,
@@ -374,7 +373,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?deleted=true",
 			wantFilter: &UserFilter{
-				Technology: "*",
+				Technology: nil,
 				Deleted:    newBool(true),
 			},
 			wantStatus: http.StatusOK,
@@ -382,7 +381,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?technology=java&deleted=*",
 			wantFilter: &UserFilter{
-				Technology: "java",
+				Technology: newString("java"),
 				Deleted:    nil,
 			},
 			wantStatus: http.StatusOK,
@@ -390,7 +389,7 @@ func TestServer_ListUsers(t *testing.T) {
 		{
 			query: "?technology=java&deleted=yes",
 			wantFilter: &UserFilter{
-				Technology: "java",
+				Technology: newString("java"),
 				Deleted:    newBool(true),
 			},
 			wantStatus: http.StatusOK,

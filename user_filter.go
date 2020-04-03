@@ -6,26 +6,24 @@ import (
 )
 
 type UserFilter struct {
-	Technology string
+	Technology *string
 	Deleted    *bool
 }
 
 func NewUserFilter(query url.Values) (UserFilter, error) {
 	f := UserFilter{}
 
-	v := query.Get("technology")
-	switch {
+	switch v := query.Get("technology"); {
 	case v == "" || v == "*":
-		f.Technology = "*"
+		f.Technology = nil
 	case validTechnology[v]:
-		f.Technology = v
+		f.Technology = &v
 	default:
 		// TODO: [LATER] avoid duplication of valid technology values in lists
 		return UserFilter{}, errors.New("'technology' query parameter must be one of: * go java js php")
 	}
 
-	v = query.Get("deleted")
-	switch v {
+	switch v := query.Get("deleted"); v {
 	case "*":
 		f.Deleted = nil
 	case "yes", "true":

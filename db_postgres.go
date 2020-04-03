@@ -64,8 +64,8 @@ func (db *PostgresDB) ListUsers(filter UserFilter) ([]*User, error) {
 	var users []*User
 	query := db.pg.Model(&users)
 
-	if filter.Technology != "*" {
-		query.Where(`technology = ?`, filter.Technology)
+	if filter.Technology != nil {
+		query.Where(`technology = ?`, *filter.Technology)
 	}
 	if filter.Deleted != nil {
 		if *filter.Deleted {
