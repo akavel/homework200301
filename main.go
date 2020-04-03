@@ -72,16 +72,15 @@ type Database interface {
 
 func (s *Server) RegisterAt(r *mux.Router) {
 	r.Methods("GET").Path("/v1/user").HandlerFunc(s.listUsers)
-	r.Methods("GET").Path("/v1/user/{id}").HandlerFunc(s.getUser)
+	r.Methods("GET").Path("/v1/user/{email}").HandlerFunc(s.getUser)
 	r.Methods("POST").Path("/v1/user").HandlerFunc(s.createUser)
-	r.Methods("PUT").Path("/v1/user/{id}").HandlerFunc(s.modifyUser)
-	r.Methods("DELETE").Path("/v1/user/{id}").HandlerFunc(s.deleteUser)
+	r.Methods("PUT").Path("/v1/user/{email}").HandlerFunc(s.modifyUser)
+	r.Methods("DELETE").Path("/v1/user/{email}").HandlerFunc(s.deleteUser)
 }
 
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 	// Parse query into filters
 	// TODO: pagination - ideally automatically mapped to the Postgres query & to the response (UsersList type? HTTP headers?)
-	// TODO: move to a separate helper function
 	filter, err := NewUserFilter(r.URL.Query())
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, err)
@@ -101,10 +100,10 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	// TODO: quick fail if id empty or invalid?
+	email := mux.Vars(r)["email"]
+	// TODO: quick fail if email empty or invalid?
 
-	found, err := s.DB.GetUser(id)
+	found, err := s.DB.GetUser(email)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, err)
 		return
@@ -148,9 +147,8 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) modifyUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
-	id := mux.Vars(r)["id"]
-	// TODO: quick fail if id empty or invalid?
+	email := mux.Vars(r)["email"]
+	// TODO: quick fail if email empty or invalid?
 
 	var u User
 	err := json.NewDecoder(r.Body).Decode(&u)
@@ -165,7 +163,7 @@ func (s *Server) modifyUser(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, err)
 		return
 	}
-	if *u.Email != id {
+	if *u.Email != email {
 		RespondError(w, http.StatusBadRequest, errors.New(".email field does not match the value in the URL"))
 		return
 	}
@@ -186,11 +184,10 @@ func (s *Server) modifyUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: [LATER] rename 'id' var & param to 'email' for naming consistency
-	id := mux.Vars(r)["id"]
-	// TODO: quick fail if id empty or invalid?
+	email := mux.Vars(r)["email"]
+	// TODO: quick fail if email empty or invalid?
 
-	err := s.DB.DeleteUser(id)
+	err := s.DB.DeleteUser(email)
 	if err != nil {
 		if errors.As(err, &ErrNotFound{}) {
 			RespondError(w, http.StatusNotFound, err)
