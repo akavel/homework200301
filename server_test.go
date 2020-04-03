@@ -14,6 +14,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const validJohnSmith = `
+{
+"email": "john@smith.com",
+"name": "John",
+"surname": "Smith",
+"password": "some pwd",
+"birthday": "1950-01-01T00:00:00Z",
+"address": "Some Street 17\nSome City",
+"phone": "111 222 333",
+"technology": "go"
+}
+`
+
 func TestServer_PostAndPutUser_Validation(t *testing.T) {
 	defaultEndpoints := []string{
 		"POST /v1/user",
@@ -95,18 +108,7 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			endpoints: []string{
 				"PUT /v1/user/greg@example.com",
 			},
-			rq: `
-{
-"email": "john@smith.com",
-"name": "John",
-"surname": "Smith",
-"password": "some pwd",
-"birthday": "1950-01-01T00:00:00Z",
-"address": "Some Street 17\nSome City",
-"phone": "111 222 333",
-"technology": "go"
-}
-`,
+			rq:            validJohnSmith,
 			wantStatus:    http.StatusBadRequest,
 			wantReplyWith: "email",
 		},
@@ -233,20 +235,9 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 
 		// VALID REQUESTS
 		{
-			comment:   "correct User, with optional .phone present",
-			endpoints: defaultEndpoints,
-			rq: `
-{
-"email": "john@smith.com",
-"name": "John",
-"surname": "Smith",
-"password": "some pwd",
-"birthday": "1950-01-01T00:00:00Z",
-"address": "Some Street 17\nSome City",
-"phone": "111 222 333",
-"technology": "go"
-}
-`,
+			comment:    "correct User, with optional .phone present",
+			endpoints:  defaultEndpoints,
+			rq:         validJohnSmith,
 			wantStatus: http.StatusNoContent,
 		},
 		{
@@ -540,11 +531,81 @@ func TestServer_VariousErrors(t *testing.T) {
 			comment: "listUsers error",
 			rq:      `GET /v1/user`,
 			db: callbackDB{
-				listUsers: func(filter UserFilter) ([]*User, error) {
+				listUsers: func(_ UserFilter) ([]*User, error) {
 					return nil, errors.New("FAKE ERROR")
 				},
 			},
 			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			comment: "getUser error",
+			rq:      `GET /v1/user/foo@bar.name`,
+			db: callbackDB{
+				getUser: func(_ string) (*User, error) {
+					return nil, errors.New("FAKE ERROR")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			comment: "createUser unspecified error",
+			rq:      `POST /v1/user ` + validJohnSmith,
+			db: callbackDB{
+				createUser: func(_ *User) error {
+					return errors.New("FAKE ERROR")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			comment: "createUser Conflict error",
+			rq:      `POST /v1/user ` + validJohnSmith,
+			db: callbackDB{
+				createUser: func(_ *User) error {
+					return ErrConflict{wraperr{errors.New("FAKE ERROR")}}
+				},
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			comment: "modifyUser unspecified error",
+			rq:      `PUT /v1/user/john@smith.com ` + validJohnSmith,
+			db: callbackDB{
+				modifyUser: func(_ *User) error {
+					return errors.New("FAKE ERROR")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			comment: "createUser NotFound error",
+			rq:      `PUT /v1/user/john@smith.com ` + validJohnSmith,
+			db: callbackDB{
+				modifyUser: func(_ *User) error {
+					return ErrNotFound{wraperr{errors.New("FAKE ERROR")}}
+				},
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			comment: "deleteUser unspecified error",
+			rq:      `DELETE /v1/user/john@smith.com`,
+			db: callbackDB{
+				deleteUser: func(_ string) error {
+					return errors.New("FAKE ERROR")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			comment: "deleteUser NotFound error",
+			rq:      `DELETE /v1/user/john@smith.com`,
+			db: callbackDB{
+				deleteUser: func(_ string) error {
+					return ErrNotFound{wraperr{errors.New("FAKE ERROR")}}
+				},
+			},
+			wantStatus: http.StatusNotFound,
 		},
 	}
 
