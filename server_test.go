@@ -300,6 +300,33 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 	}
 }
 
+func TestServer_PostUser_LocationHeader(t *testing.T) {
+	// Prepare server
+	srv := Server{
+		DB:      nullDB{},
+		BaseURL: "TEST",
+	}
+	r := mux.NewRouter()
+	srv.RegisterAt(r)
+	listener := httptest.NewServer(r)
+	client := listener.Client()
+	defer listener.Close()
+
+	// RUN TEST
+	rs, err := client.Post(listener.URL+"/v1/user", "application/json", strings.NewReader(validJohnSmith))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Body.Close()
+
+	// Verify 'Location' header in HTTP response
+	wantLocation := "TEST/v1/user/john@smith.com"
+	location := rs.Header.Get("Location")
+	if location != wantLocation {
+		t.Errorf("bad Location:\nwant: %q\nhave: %q", wantLocation, location)
+	}
+}
+
 type nullDB struct{}
 
 func (db nullDB) ListUsers(filter UserFilter) ([]*User, error) { return nil, nil }

@@ -47,6 +47,8 @@ func main() {
 
 	srv := Server{
 		DB: db,
+		// FIXME: base URL below should be customizable via a separate flag
+		BaseURL: *addr,
 	}
 
 	r := mux.NewRouter()
@@ -56,7 +58,8 @@ func main() {
 }
 
 type Server struct {
-	DB Database
+	DB      Database
+	BaseURL string
 }
 
 // TODO: [LATER] introduce Context to methods, to allow timeouts control
@@ -141,8 +144,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIXME: base URL below should be customizable via flag
-	w.Header().Add("Location", "/v1/user/"+*u.Email)
+	w.Header().Add("Location", s.BaseURL+"/v1/user/"+*u.Email)
 	RespondJSON(w, http.StatusNoContent, nil)
 }
 
