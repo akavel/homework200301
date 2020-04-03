@@ -5,11 +5,14 @@ import (
 	"net/url"
 )
 
+// UserFilter describes criteria for selecting User objects.
 type UserFilter struct {
-	Technology *string
-	Deleted    *bool
+	Technology *string // nil matches any value, non-nil matches equal value in User
+	Deleted    *bool   // nil matches any value, true matches deleted User (User.Deleted!=nil), false matches active User (User.Deleted==nil)
 }
 
+// NewUserFilter creates a UserFilter based on URL query. If the query cannot
+// be translated to a valid UserFilter, an error is returned.
 func NewUserFilter(query url.Values) (UserFilter, error) {
 	f := UserFilter{}
 

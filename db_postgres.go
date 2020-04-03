@@ -11,12 +11,18 @@ import (
 	"github.com/go-pg/pg/v9/orm"
 )
 
+// PostgresDB represents a database containing User objects. PostgresDB intends
+// to implement the Database interface.
 type PostgresDB struct {
 	pg *pg.DB
 }
 
 var _ Database = (*PostgresDB)(nil)
 
+// ConnectPostgres opens a conection to a PostgreSQL database described by
+// provided options, and creates a schema for storing User objects in the
+// database if not yet present.
+//
 // TODO: [LATER] use generic options, not ones specific to pg package
 func ConnectPostgres(options *pg.Options) (*PostgresDB, error) {
 	db := &PostgresDB{

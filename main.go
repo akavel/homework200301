@@ -62,12 +62,28 @@ type Server struct {
 	BaseURL string
 }
 
+// Database represents a set of operations required of a database to be usable
+// by the Server. The User object passed to the functions is assumed to be
+// internally consistent. However, a type implementing Database is responsible
+// for ensuring database consistency, including:
+//
+// - there can be only one active (non-deleted) user with same Email value
+//
+// - all operations on a Database must be safe for concurrent use
+//
+// When it makes sense, the operations are expected to return an error that can
+// be converted to ErrNotFound or ErrConflict using errors.As.
+//
 // TODO: [LATER] introduce Context to methods, to allow timeouts control
 type Database interface {
+	// ListUsers is expected to return a list of users matching the provided
+	// filter.
 	ListUsers(filter UserFilter) ([]*User, error)
 	GetUser(email string) (*User, error)
 	CreateUser(u *User) error
 	ModifyUser(u *User) error
+	// DeleteUser is expected to be a "soft delete", setting User.Deleted to
+	// non-nil value.
 	DeleteUser(email string) error
 
 	Close() error

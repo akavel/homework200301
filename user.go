@@ -30,6 +30,16 @@ type User struct {
 
 // Validate checks if User fields have allowed values. If not, an error is
 // returned with a detailed message.
+//
+// Notably, this currently means:
+//
+// - all fields except .Phone and .Delete are mandatory and should be non-nil
+//
+// - .Email must contain a '@' character
+//
+// - .Technology must match one of the values listed in validTechnology
+//
+// - .Deleted must be nil
 func (u *User) Validate() error {
 	// TODO: return all validation errors, not just the first one
 	switch {
