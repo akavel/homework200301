@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -526,3 +528,65 @@ func TestServer_GetUser(t *testing.T) {
 }
 
 func newString(v string) *string { return &v }
+
+func TestServer_VariousErrors(t *testing.T) {
+	tests := []struct {
+		comment    string
+		rq         string // "METHOD URL[ BODY]"
+		db         callbackDB
+		wantStatus int
+	}{
+		{
+			comment: "listUsers error",
+			rq:      `GET /v1/user`,
+			db: callbackDB{
+				listUsers: func(filter UserFilter) ([]*User, error) {
+					return nil, errors.New("FAKE ERROR")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		// Prepare server
+		srv := Server{DB: tt.db}
+		r := mux.NewRouter()
+		srv.RegisterAt(r)
+		listener := httptest.NewServer(r)
+		client := listener.Client()
+
+		// Prepare request
+		var (
+			query  = strings.SplitN(tt.rq, " ", 3)
+			method = query[0]
+			path   = query[1]
+			body   io.Reader
+		)
+		if len(query) >= 3 {
+			body = strings.NewReader(query[2])
+		}
+		rq, err := http.NewRequest(method, listener.URL+path, body)
+		if err != nil {
+			t.Errorf("%q: request building error: %s", tt.comment, err)
+			listener.Close()
+			continue
+		}
+		rq.Header.Set("Content-Type", "application/json")
+
+		// RUN TEST
+		rs, err := client.Do(rq)
+		if err != nil {
+			t.Errorf("%q: HTTP query error: %s", tt.comment, err)
+			listener.Close()
+			continue
+		}
+		rs.Body.Close()
+
+		// Verify HTTP status of response
+		if rs.StatusCode != tt.wantStatus {
+			t.Errorf("%q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
+		}
+		listener.Close()
+	}
+}
