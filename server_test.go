@@ -11,8 +11,13 @@ import (
 )
 
 func TestServer_PostAndPutUser_Validation(t *testing.T) {
+	defaultEndpoints := []string{
+		"POST /v1/user",
+		"PUT /v1/user/john@smith.com",
+	}
 	tests := []struct {
 		comment       string
+		endpoints     []string
 		rq            string
 		wantStatus    int
 		wantReplyWith string
@@ -21,12 +26,14 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 		// Non-JSON
 		{
 			comment:    "non-JSON input",
+			endpoints:  defaultEndpoints,
 			rq:         `hello world!`,
 			wantStatus: http.StatusBadRequest,
 		},
 		// Incorrect field values
 		{
-			comment: "invalid User: invalid email (no @)",
+			comment:   "invalid User: invalid email (no @)",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john.smith.com",
@@ -43,7 +50,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "email",
 		},
 		{
-			comment: "invalid User: invalid value in .technology",
+			comment:   "invalid User: invalid value in .technology",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -60,7 +68,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "technology",
 		},
 		{
-			comment: "invalid User: unwanted 'deleted' field",
+			comment:   "invalid User: unwanted 'deleted' field",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -77,9 +86,30 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantStatus:    http.StatusBadRequest,
 			wantReplyWith: "deleted",
 		},
+		{
+			comment: "mismatch between .email and URL",
+			endpoints: []string{
+				"PUT /v1/user/greg@example.com",
+			},
+			rq: `
+{
+"email": "john@smith.com",
+"name": "John",
+"surname": "Smith",
+"password": "some pwd",
+"birthday": "1950-01-01T00:00:00Z",
+"address": "Some Street 17\nSome City",
+"phone": "111 222 333",
+"technology": "go"
+}
+`,
+			wantStatus:    http.StatusBadRequest,
+			wantReplyWith: "email",
+		},
 		// Missing fields
 		{
-			comment: "invalid User: no email",
+			comment:   "invalid User: no email",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "name": "John",
@@ -95,7 +125,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "email",
 		},
 		{
-			comment: "invalid User: no name",
+			comment:   "invalid User: no name",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -111,7 +142,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "name",
 		},
 		{
-			comment: "invalid User: no surname",
+			comment:   "invalid User: no surname",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -127,7 +159,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "surname",
 		},
 		{
-			comment: "invalid User: no password",
+			comment:   "invalid User: no password",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -143,7 +176,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "password",
 		},
 		{
-			comment: "invalid User: no birthday",
+			comment:   "invalid User: no birthday",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -159,7 +193,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "birthday",
 		},
 		{
-			comment: "invalid User: no address",
+			comment:   "invalid User: no address",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -175,7 +210,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantReplyWith: "address",
 		},
 		{
-			comment: "invalid User: no technology",
+			comment:   "invalid User: no technology",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -193,7 +229,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 
 		// VALID REQUESTS
 		{
-			comment: "correct User, with optional .phone present",
+			comment:   "correct User, with optional .phone present",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -209,7 +246,8 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 			wantStatus: http.StatusNoContent,
 		},
 		{
-			comment: "correct User, with optional .phone absent",
+			comment:   "correct User, with optional .phone absent",
+			endpoints: defaultEndpoints,
 			rq: `
 {
 "email": "john@smith.com",
@@ -225,63 +263,45 @@ func TestServer_PostAndPutUser_Validation(t *testing.T) {
 		},
 	}
 
+	srv := Server{DB: nullDB{}}
+	r := mux.NewRouter()
+	srv.RegisterAt(r)
+	listener := httptest.NewServer(r)
+	client := listener.Client()
+	defer listener.Close()
+
 	for _, tt := range tests {
-		srv := Server{DB: nullDB{}}
-		r := mux.NewRouter()
-		srv.RegisterAt(r)
-		listener := httptest.NewServer(r)
-		client := listener.Client()
+		for _, e := range tt.endpoints {
+			var (
+				s      = strings.Split(e, " ")
+				method = s[0]
+				path   = s[1]
+			)
 
-		// Test POST
-		rs, err := client.Post(listener.URL+"/v1/user", "application/json", strings.NewReader(tt.rq))
-		if err != nil {
-			t.Errorf("POST %q: HTTP query error: %s", tt.comment, err)
-			listener.Close()
-			continue
+			req, err := http.NewRequest(method, listener.URL+path, strings.NewReader(tt.rq))
+			if err != nil {
+				t.Errorf("%s %q: request building error: %s", e, tt.comment, err)
+				continue
+			}
+			req.Header.Set("Content-Type", "application/json")
+			rs, err := client.Do(req)
+			if err != nil {
+				t.Errorf("%s %q: HTTP query error: %s", e, tt.comment, err)
+				continue
+			}
+			if rs.StatusCode != tt.wantStatus {
+				t.Errorf("%s %q: want status %v, got %v (%v)", e, tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
+			}
+			body, err := ioutil.ReadAll(rs.Body)
+			rs.Body.Close()
+			if err != nil {
+				t.Errorf("%s %q: error reading Body: %s", e, tt.comment, err)
+				continue
+			}
+			if !strings.Contains(string(body), tt.wantReplyWith) {
+				t.Errorf("%s %q: want reply with: %q, got:\n%s", e, tt.comment, tt.wantReplyWith, string(body))
+			}
 		}
-		if rs.StatusCode != tt.wantStatus {
-			t.Errorf("POST %q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
-		}
-		body, err := ioutil.ReadAll(rs.Body)
-		rs.Body.Close()
-		if err != nil {
-			t.Errorf("POST %q: error reading Body: %s", tt.comment, err)
-			listener.Close()
-			continue
-		}
-		if !strings.Contains(string(body), tt.wantReplyWith) {
-			t.Errorf("POST %q: want reply with: %q, got:\n%s", tt.comment, tt.wantReplyWith, string(body))
-		}
-
-		// Test PUT
-		req, err := http.NewRequest("PUT", listener.URL+"/v1/user/john@smith.com", strings.NewReader(tt.rq))
-		if err != nil {
-			t.Errorf("PUT %q: request building error: %s", tt.comment, err)
-			listener.Close()
-			continue
-		}
-		req.Header.Set("Content-Type", "application/json")
-		rs, err = client.Do(req)
-		if err != nil {
-			t.Errorf("PUT %q: HTTP query error: %s", tt.comment, err)
-			listener.Close()
-			continue
-		}
-		if rs.StatusCode != tt.wantStatus {
-			t.Errorf("PUT %q: want status %v, got %v (%v)", tt.comment, tt.wantStatus, rs.StatusCode, rs.Status)
-		}
-		body, err = ioutil.ReadAll(rs.Body)
-		rs.Body.Close()
-		if err != nil {
-			t.Errorf("PUT %q: error reading Body: %s", tt.comment, err)
-			listener.Close()
-			continue
-		}
-		if !strings.Contains(string(body), tt.wantReplyWith) {
-			t.Errorf("PUT %q: want reply with: %q, got:\n%s", tt.comment, tt.wantReplyWith, string(body))
-		}
-
-		listener.Close()
 	}
 }
 
