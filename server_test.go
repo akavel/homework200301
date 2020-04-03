@@ -59,6 +59,24 @@ func TestServer_PostUser_Validation(t *testing.T) {
 			wantStatus:    http.StatusBadRequest,
 			wantReplyWith: "technology",
 		},
+		{
+			comment: "invalid User: unwanted 'deleted' field",
+			rq: `
+{
+"email": "john@smith.com",
+"name": "John",
+"surname": "Smith",
+"password": "some pwd",
+"birthday": "1950-01-01T00:00:00Z",
+"address": "Some Street 17\nSome City",
+"phone": "111 222 333",
+"technology": "go",
+"deleted": "1950-01-01T00:00:00Z"
+}
+`,
+			wantStatus:    http.StatusBadRequest,
+			wantReplyWith: "deleted",
+		},
 		// Missing fields
 		{
 			comment: "invalid User: no email",
